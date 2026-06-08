@@ -10,3 +10,4 @@ inspection-*.summary.txt
 .pytest_cache/
 .mypy_cache/
 .venv/
+*.egg-info/

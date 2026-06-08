@@ -1,38 +1,31 @@
 # System Inspection Report
 
-System Inspection Report 是一个 Linux 每日巡检报告生成器，会采集 CPU、Load、内存、Swap、磁盘、vnStat 流量、Docker 容器、systemd 定时任务、fail2ban 和本地安全事件，并生成一份 HTML 报告和文本摘要。投递渠道支持 email 和 Telegram。
+System Inspection Report 是一个 Linux 每日巡检报告生成器。它会生成一份 HTML 报告和一份文本摘要，覆盖 CPU、Load、内存、Swap、磁盘、vnStat 流量、Docker 容器、systemd 单元、fail2ban 和本地安全事件。投递渠道支持 email 和 Telegram，默认关闭。
 
-## 特性
+## 功能预览
+
+以下截图使用脱敏示例数据生成，不包含真实主机、端口或业务信息。
+
+![System Inspection Report preview](docs/preview.png)
+
+## 功能
 
 - 生成高对比度 HTML 巡检报告。
-- 支持 systemd timer 定时执行。
+- 输出适合消息推送的文本摘要。
+- CPU、Load、流量图表使用动态纵轴，低负载场景也保持可读。
 - 支持 sysstat/sadf 的 CPU 和 Load 小时趋势。
-- 支持 vnStat 网络流量统计，自动排除 Docker bridge/veth/lo，也可指定网卡。
+- 支持 vnStat 网络流量统计，自动排除 Docker bridge、veth 和 loopback，也可指定网卡。
 - 支持 Docker 容器资源 Top、健康检查状态和日志目录占用。
+- 支持 systemd timer 定时执行。
 - 支持 Telegram summary + HTML document 分别投递。
 - 支持 `best-effort` 和 `strict` 投递语义。
-- 默认不发送任何外部消息，必须显式配置投递开关。
 
-## 依赖
+## 快速开始
 
-必需：
-
-- Linux
-- Python 3.11+
-- systemd
-
-可选但推荐：
-
-- `sysstat`：CPU / Load 小时趋势
-- `vnstat`：网卡流量统计
-- `docker`：容器资源和健康状态
-- `fail2ban`：防护状态和最近日志
-- `mail`：email 投递
-- `curl`：Telegram 投递
-
-## 快速试跑
+下面这组命令可以直接在一台 Linux 机器上跑起来。未安装可选采集工具时，对应模块会显示为空或 unknown，不影响报告生成。
 
 ```bash
+git clone https://github.com/Cyberceratops/system-inspection-report.git
 cd system-inspection-report
 python3 -m venv .venv
 . .venv/bin/activate
@@ -40,21 +33,37 @@ pip install -e .
 SEND_EMAIL=0 SEND_TELEGRAM=0 REPORT_DIR=reports system-inspection-report root
 ```
 
-生成文件位于 `reports/`：
+成功后终端会输出生成的 HTML 路径，例如：
 
-- `inspection-YYYY-MM-DD-HHMMSS.html`
-- `inspection-YYYY-MM-DD-HHMMSS.summary.txt`
+```text
+reports/inspection-2026-06-08-090000.html
+```
+
+同时会生成同名摘要文件：
+
+```text
+reports/inspection-2026-06-08-090000.summary.txt
+```
+
+可选安装采集工具：
+
+```bash
+sudo apt-get update
+sudo apt-get install -y sysstat vnstat curl
+```
+
+如果需要 Docker、fail2ban、email 投递能力，再按需安装 Docker、fail2ban 和 `mail` 命令。
 
 ## 配置
 
 可以通过环境变量和 JSON 配置文件控制行为。环境变量优先级高于 JSON 配置。
 
-示例：
+本地试跑可以只用环境变量。长期部署建议复制示例文件：
 
 ```bash
-cp examples/env.example /etc/system-inspection-report.env
-cp examples/config.example.json /etc/system-inspection-report.json
-chmod 600 /etc/system-inspection-report.env
+sudo cp examples/env.example /etc/system-inspection-report.env
+sudo cp examples/config.example.json /etc/system-inspection-report.json
+sudo chmod 600 /etc/system-inspection-report.env
 ```
 
 关键环境变量：
@@ -82,7 +91,7 @@ JSON 配置可设置：
 - `root_disk_path`、`data_disk_path`、`data_root`
 - `network_interface`
 
-## systemd 安装示例
+## systemd 部署
 
 ```bash
 sudo mkdir -p /opt/system-inspection-report
@@ -103,10 +112,15 @@ sudo systemctl start system-inspection-report.service
 sudo journalctl -u system-inspection-report.service -n 100 --no-pager
 ```
 
-## 投递语义
+## Telegram 投递
 
-- `DELIVERY_MODE=best-effort`：报告生成成功即返回成功，投递失败写 stderr/journal。
-- `DELIVERY_MODE=strict`：启用的投递渠道失败时返回非零。
+编辑 `/etc/system-inspection-report.env`：
+
+```bash
+SEND_TELEGRAM=1
+TELEGRAM_BOT_TOKEN=replace-with-your-bot-token
+TELEGRAM_CHAT_ID=replace-with-your-chat-id
+```
 
 Telegram 会分别发送：
 
@@ -115,17 +129,23 @@ Telegram 会分别发送：
 
 两者失败会分别记录，便于排查。
 
-## 安全与脱敏
+## Email 投递
 
-开源仓库不应包含：
+确保系统有 `mail` 命令，然后设置：
 
-- `*.env` 或真实环境文件
-- Telegram token / chat id
-- 真实 HTML 报告和 summary
-- 真实主机名、IP、端口清单截图
-- 业务内部服务名、目录名、备份文件
+```bash
+SEND_EMAIL=1
+RECIPIENT=admin@example.com
+```
 
-报告本身可能包含监听端口、容器名、日志路径和 systemd 单元名称。公开截图或报告样例前请先脱敏。
+## 投递模式
+
+- `DELIVERY_MODE=best-effort`：报告生成成功即返回成功，投递失败写 stderr/journal。
+- `DELIVERY_MODE=strict`：启用的投递渠道失败时返回非零。
+
+## 隐私边界
+
+默认配置不会发送 email 或 Telegram。报告内容会包含本机采集到的运行信息，例如主机名、容器名、systemd 单元名、日志路径和监听端口；在启用外部投递前，请确认接收方和报告内容符合你的使用场景。
 
 ## 许可证
 

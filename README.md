@@ -25,8 +25,8 @@ System Inspection Report 是一个 Linux 每日巡检报告生成器。它会生
 下面这组命令可以直接在一台 Linux 机器上跑起来。未安装可选采集工具时，对应模块会显示为空或 unknown，不影响报告生成。
 
 ```bash
-git clone https://github.com/Cyberceratops/system-inspection-report.git
-cd system-inspection-report
+git clone https://github.com/EmmaStoneX/system-inspection-report-oss.git
+cd system-inspection-report-oss
 python3 -m venv .venv
 . .venv/bin/activate
 # 安装当前仓库里的 Python 包，安装后会得到 system-inspection-report 命令
@@ -54,6 +54,12 @@ sudo apt-get install -y sysstat vnstat curl
 ```
 
 如果需要 Docker、fail2ban、email 投递能力，再按需安装 Docker、fail2ban 和 `mail` 命令。
+
+如果希望让 AI agent 直接帮你部署，可以把下面这段作为提示词发给它：
+
+```text
+请在这台 Linux 服务器上部署 system-inspection-report-oss：从 https://github.com/EmmaStoneX/system-inspection-report-oss.git 克隆项目，创建 Python 虚拟环境并安装当前包，先以 SEND_EMAIL=0 SEND_TELEGRAM=0 REPORT_DIR=reports system-inspection-report root 手动生成一次报告确认可运行；然后按 README 的 systemd 部署步骤，把项目同步到 /opt/system-inspection-report，复制 examples/env.example 和 examples/config.example.json 到 /etc，安装并启用 system-inspection-report.timer。部署完成后，请用 systemctl status、journalctl 和生成的报告路径验证结果。
+```
 
 ## 配置
 

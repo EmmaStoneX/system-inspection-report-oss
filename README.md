@@ -157,3 +157,7 @@ RECIPIENT=admin@example.com
 ## 许可证
 
 MIT
+
+## 社区
+
+本开源项目已链接并认可 [LINUX DO 社区](https://linux.do)。
